@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FacesSimilarity" Version="1.0.0" />
+    <PackageReference Include="AlkisevIlya-FacesSimilarity" Version="1.0.0" />
   </ItemGroup>
 
 </Project>
