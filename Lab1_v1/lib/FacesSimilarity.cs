@@ -47,24 +47,25 @@ public class FacesComparator
     private float[] GetEmbeddings(Image<Rgb24> img) 
     {
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("data", ImageToTensor(img)) };
+        sessionLock.Wait();
         using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs);
+        sessionLock.Release();
         return Normalize(results.First(v => v.Name == "fc1").AsEnumerable<float>().ToArray());
     }
 
-    private async Task<float[]> GetEmbeddingsAsync(Image<Rgb24> img)
+    private async Task<float[]> GetEmbeddingsAsync(Image<Rgb24> img, CancellationToken ct)
     {
-        return await Task<float[]>.Factory.StartNew(() => GetEmbeddings(img), cts.Token);
+        var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("data", ImageToTensor(img)) };
+        await sessionLock.WaitAsync();
+        using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs);
+        sessionLock.Release();
+        return Normalize(results.First(v => v.Name == "fc1").AsEnumerable<float>().ToArray());
     }
 
     private InferenceSession session;
-    private IErrorReporter reporter;
-    private CancellationTokenSource cts;
-    public void Cancel()
-    {
-        cts.Cancel();
-    }
+    private SemaphoreSlim sessionLock;
 
-    public FacesComparator(IErrorReporter r)
+    public FacesComparator()
     {
         using var modelStream = typeof(FacesComparator).Assembly.GetManifestResourceStream("FacesSimilarity.arcfaceresnet100-8.onnx");
         using var memoryStream = new MemoryStream();
@@ -73,65 +74,50 @@ public class FacesComparator
             modelStream.CopyTo(memoryStream);
         }
         session = new InferenceSession(memoryStream.ToArray());
-        reporter = r;
-        cts = new CancellationTokenSource();
+        sessionLock = new SemaphoreSlim(1, 1);
     }
 
     public Tuple<float, float> Compare(byte[] img1, byte[] img2)
     {
-        try
-        {
-            var face1 = Image.Load<Rgb24>(img1);
-            var face2 = Image.Load<Rgb24>(img2);
+        var face1 = Image.Load<Rgb24>(img1);
+        var face2 = Image.Load<Rgb24>(img2);
 
-            var embeddings1 = GetEmbeddings(face1);
-            var embeddings2 = GetEmbeddings(face2);
+        var embeddings1 = GetEmbeddings(face1);
+        var embeddings2 = GetEmbeddings(face2);
 
-            return Tuple.Create(Distance(embeddings1, embeddings2), Similarity(embeddings1, embeddings2));
-        }
-        catch(Exception e)
-        {
-            reporter.ReportError(e.Message);
-        }
-        return Tuple.Create<float, float>(0, 0);
+        return Tuple.Create(Distance(embeddings1, embeddings2), Similarity(embeddings1, embeddings2));
     }
 
-    public async Task<Tuple<float, float>> CompareAsync(byte[] img1, byte[] img2)
+    public async Task<Tuple<float, float>> CompareAsync(byte[] img1, byte[] img2, CancellationToken ct)
     {
         var emptyResult = Tuple.Create<float, float>(0, 0);
-        try
-        {
-            var stream1 = new MemoryStream(img1);
-            var face1 = await Image.LoadAsync<Rgb24>(stream1, cts.Token);
-            if(cts.Token.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var stream2 = new MemoryStream(img2);
-            var face2 = await Image.LoadAsync<Rgb24>(stream2, cts.Token);
-            if(cts.Token.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var embeddings1 = await GetEmbeddingsAsync(face1);
-            if(cts.Token.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var embeddings2 = await GetEmbeddingsAsync(face2);
-            if(cts.Token.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var distance = Distance(embeddings1, embeddings2);
-            var similarity = Similarity(embeddings1, embeddings2);
-            return Tuple.Create(distance, similarity);
+        var stream1 = new MemoryStream(img1);
+        var t1 = Image.LoadAsync<Rgb24>(stream1, ct);
+        if(ct.IsCancellationRequested){
+            return emptyResult;
         }
-        catch(Exception e)
-        {
-            reporter.ReportError(e.Message);
+
+        var stream2 = new MemoryStream(img2);
+        var t2 = Image.LoadAsync<Rgb24>(stream2, ct);
+        if(ct.IsCancellationRequested){
+            return emptyResult;
         }
-        return emptyResult;
+
+        var face1 = await t1;
+        var embeddings1 = await GetEmbeddingsAsync(face1, ct);
+        if(ct.IsCancellationRequested){
+            return emptyResult;
+        }
+
+        var face2 = await t2;
+        var embeddings2 = await GetEmbeddingsAsync(face2, ct);
+        if(ct.IsCancellationRequested){
+            return emptyResult;
+        }
+
+        var distance = Distance(embeddings1, embeddings2);
+        var similarity = Similarity(embeddings1, embeddings2);
+        return Tuple.Create(distance, similarity);
     }
 }
 

@@ -3,14 +3,6 @@ using System.Diagnostics;
 
 namespace application {
 
-class ErrorReporter: IErrorReporter
-{
-    public void ReportError(string msg)
-    {
-        Console.WriteLine($"ERROR: {msg}");
-    }
-}
-
 class Program
 {
     static void PrintUsage()
@@ -83,11 +75,12 @@ class Program
     {
         var n = images.Count;
         var tasks = new Task<Tuple<float, float>>[n, n];
+        var cts = new CancellationTokenSource();
         for(int i = 0; i < n; ++i)
         {
             for(int j = 0; j < n; ++j)
             {
-                tasks[i, j] = fc.CompareAsync(images[i], images[j]);
+                tasks[i, j] = fc.CompareAsync(images[i], images[j], cts.Token);
             }
         }
         for(int i = 0; i < n; ++i)
@@ -109,8 +102,7 @@ class Program
 
         var distances = new float[n, n];
         var similarities = new float[n, n];
-        var errorReporter = new ErrorReporter();
-        var fc = new FacesComparator(errorReporter);
+        var fc = new FacesComparator();
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
