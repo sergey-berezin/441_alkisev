@@ -99,6 +99,7 @@ ClientBin/
 *~
 *.dbmdl
 *.[Pp]ublish.xml
+*.onnx
 
 *.publishsettings
 
