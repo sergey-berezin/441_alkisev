@@ -18,10 +18,10 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.Row="0" Grid.Column="0">
-            <Button Content="Load images" Click="LoadImagesClick" Margin="10" Height="30" Background="White"/>
-            <Button Content="Compare" Click="CompareClick" Margin="10" Height="30" Background="White"/>
-            <Button Content="Cancel" Click="CancelClick" Margin="10" Height="30" Background="White"/>
-            <Button Content="Clear" Click="ClearClick" Margin="10" Height="30" Background="White"/>
+            <Button Content="Load images" Command="{Binding LoadImages}" Margin="10" Height="30" Background="White"/>
+            <Button Content="Compare" Command="{Binding Compare}" Margin="10" Height="30" Background="White"/>
+            <Button Content="Cancel" Command="{Binding Cancel}" Margin="10" Height="30" Background="White"/>
+            <Button Content="Clear" Command="{Binding Clear}"  Margin="10" Height="30" Background="White"/>
         </StackPanel>
 
         <Grid x:Name="ComparisonData" Grid.Column="1" Grid.Row="0" Margin="10" ShowGridLines="True"/>

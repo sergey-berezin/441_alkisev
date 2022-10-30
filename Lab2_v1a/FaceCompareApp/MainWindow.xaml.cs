@@ -30,12 +30,23 @@ namespace FaceCompareApp
         public List<byte[]> Images;
         public FacesComparator FacesComparator;
         public CancellationTokenSource cts;
+        public bool ComparisonRunning { get; private set; }
+
+        public ICommand LoadImages { get; private set; }
+        public ICommand Compare { get; private set; }
+        public ICommand Cancel { get; private set; }
+        public ICommand Clear { get; private set; }
 
         public MainWindow()
         {
             Images = new List<byte[]>();
             FacesComparator = new FacesComparator();
             cts = new CancellationTokenSource();
+            ComparisonRunning = false;
+            LoadImages = new RelayCommand(_ => { DoLoadImages(); }, _ => { return CanLoadImages(); });
+            Compare = new RelayCommand(_ => { DoCompare(); }, _ => { return CanCompare(); });
+            Cancel = new RelayCommand(_ => { DoCancel(); }, _ => { return CanCancel(); });
+            Clear = new RelayCommand(_ => { DoClear(); }, _ => { return CanClear(); });
             InitializeComponent();
             MainGrid.DataContext = this;
         }
@@ -49,8 +60,11 @@ namespace FaceCompareApp
             tb.VerticalAlignment = VerticalAlignment.Center;
             return tb;
         }
-
-        private void LoadImagesClick(object sender, RoutedEventArgs e)
+        private bool CanLoadImages()
+        {
+            return !ComparisonRunning;
+        }
+        private void DoLoadImages()
         {
             DoClear();
             var ofd = new OpenFileDialog { Multiselect = true };
@@ -89,9 +103,13 @@ namespace FaceCompareApp
                 ComparisonData.Children.Add(image);
             }
         }
-
-        private async void CompareClick(object sender, RoutedEventArgs e)
+        private bool CanCompare()
         {
+            return !ComparisonRunning && Images.Count > 0;
+        }
+        private async void DoCompare()
+        {
+            ComparisonRunning = true;
             if (cts.IsCancellationRequested)
             {
                 cts = new CancellationTokenSource();
@@ -108,12 +126,17 @@ namespace FaceCompareApp
             {
                 for (int j = 0; j < n && !cts.IsCancellationRequested; ++j)
                 {
-                    var v = await FacesComparator.CompareAsync(Images[i], Images[j], cts.Token);
-                    var tb = CreateTextBlock(v.Item1.ToString("F4"), v.Item2.ToString("F4"));
-                    Grid.SetColumn(tb, i + 1);
-                    Grid.SetRow(tb, j + 1);
-                    ComparisonData.Children.Add(tb);
-                    ComparisonPB.Value += progress_step;
+                    try
+                    {
+                        var v = await FacesComparator.CompareAsync(Images[i], Images[j], cts.Token);
+                        var tb = CreateTextBlock(v.Item1.ToString("F4"), v.Item2.ToString("F4"));
+                        Grid.SetColumn(tb, i + 1);
+                        Grid.SetRow(tb, j + 1);
+                        ComparisonData.Children.Add(tb);
+                        ComparisonPB.Value += progress_step;
+                    }
+                    catch(OperationCanceledException)
+                    { }
                 }
             }
             if (!cts.IsCancellationRequested)
@@ -124,16 +147,22 @@ namespace FaceCompareApp
             {
                 ComparisonPB.Foreground = Brushes.Red;
             }
+            ComparisonRunning = false;
         }
 
-        private void CancelClick(object sender, RoutedEventArgs e)
+        private bool CanCancel()
+        {
+            return ComparisonRunning;
+        }
+
+        private void DoCancel()
         {
             cts.Cancel();
         }
 
-        private void ClearClick(object sender, RoutedEventArgs e)
+        private bool CanClear()
         {
-            DoClear();
+            return !ComparisonRunning && Images.Count > 0;
         }
 
         private void DoClear()
