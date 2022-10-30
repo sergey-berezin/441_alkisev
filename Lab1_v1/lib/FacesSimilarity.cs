@@ -90,40 +90,33 @@ public class FacesComparator
 
     public async Task<Tuple<float, float>> CompareAsync(byte[] img1, byte[] img2, CancellationToken ct)
     {
-        var emptyResult = Tuple.Create<float, float>(0, 0);
-        try
-        {
-            var stream1 = new MemoryStream(img1);
-            var t1 = Image.LoadAsync<Rgb24>(stream1, ct);
-            if(ct.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var stream2 = new MemoryStream(img2);
-            var t2 = Image.LoadAsync<Rgb24>(stream2, ct);
-            if(ct.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var face1 = await t1;
-            var embeddings1 = await GetEmbeddingsAsync(face1, ct);
-            if(ct.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var face2 = await t2;
-            var embeddings2 = await GetEmbeddingsAsync(face2, ct);
-            if(ct.IsCancellationRequested){
-                return emptyResult;
-            }
-
-            var distance = Distance(embeddings1, embeddings2);
-            var similarity = Similarity(embeddings1, embeddings2);
-            return Tuple.Create(distance, similarity);
+        var stream1 = new MemoryStream(img1);
+        var t1 = Image.LoadAsync<Rgb24>(stream1, ct);
+        if(ct.IsCancellationRequested){
+            throw new OperationCanceledException();
         }
-        catch(OperationCanceledException)
-        {}
-        return emptyResult;
+
+        var stream2 = new MemoryStream(img2);
+        var t2 = Image.LoadAsync<Rgb24>(stream2, ct);
+        if(ct.IsCancellationRequested){
+            throw new OperationCanceledException();
+        }
+
+        var face1 = await t1;
+        var embeddings1 = await GetEmbeddingsAsync(face1, ct);
+        if(ct.IsCancellationRequested){
+            throw new OperationCanceledException();
+        }
+
+        var face2 = await t2;
+        var embeddings2 = await GetEmbeddingsAsync(face2, ct);
+        if(ct.IsCancellationRequested){
+            throw new OperationCanceledException();
+        }
+
+        var distance = Distance(embeddings1, embeddings2);
+        var similarity = Similarity(embeddings1, embeddings2);
+        return Tuple.Create(distance, similarity);
     }
 }
 
