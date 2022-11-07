@@ -6,11 +6,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace FacesSimilarity {
 
-public interface IErrorReporter
-{
-    public void ReportError(string msg);
-}
-
 public class FacesComparator
 {
     private static float Length(float[] v) => (float)Math.Sqrt(v.Select(x => x*x).Sum());
