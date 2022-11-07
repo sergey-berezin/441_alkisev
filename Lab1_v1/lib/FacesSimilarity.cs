@@ -6,16 +6,11 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace FacesSimilarity {
 
-public interface IErrorReporter
-{
-    public void ReportError(string msg);
-}
-
 public class FacesComparator
 {
     private static float Length(float[] v) => (float)Math.Sqrt(v.Select(x => x*x).Sum());
-    private static float Distance(float[] v1, float[] v2) => Length(v1.Zip(v2).Select(p => p.First - p.Second).ToArray());
-    private static float Similarity(float[] v1, float[] v2) => v1.Zip(v2).Select(p => p.First * p.Second).Sum();
+    public static float Distance(float[] v1, float[] v2) => Length(v1.Zip(v2).Select(p => p.First - p.Second).ToArray());
+    public static float Similarity(float[] v1, float[] v2) => v1.Zip(v2).Select(p => p.First * p.Second).Sum();
     private static DenseTensor<float> ImageToTensor(Image<Rgb24> img)
     {
         var w = img.Width;
@@ -44,7 +39,7 @@ public class FacesComparator
         var len = Length(v);
         return v.Select(x => x / len).ToArray();
     }
-    private float[] GetEmbeddings(Image<Rgb24> img) 
+    public float[] GetEmbeddings(Image<Rgb24> img) 
     {
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("data", ImageToTensor(img)) };
         sessionLock.Wait();
@@ -53,7 +48,7 @@ public class FacesComparator
         return Normalize(results.First(v => v.Name == "fc1").AsEnumerable<float>().ToArray());
     }
 
-    private async Task<float[]> GetEmbeddingsAsync(Image<Rgb24> img, CancellationToken ct)
+    public async Task<float[]> GetEmbeddingsAsync(Image<Rgb24> img, CancellationToken ct)
     {
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("data", ImageToTensor(img)) };
         await sessionLock.WaitAsync();
@@ -90,30 +85,21 @@ public class FacesComparator
 
     public async Task<Tuple<float, float>> CompareAsync(byte[] img1, byte[] img2, CancellationToken ct)
     {
-        var emptyResult = Tuple.Create<float, float>(0, 0);
         var stream1 = new MemoryStream(img1);
         var t1 = Image.LoadAsync<Rgb24>(stream1, ct);
-        if(ct.IsCancellationRequested){
-            return emptyResult;
-        }
+        ct.ThrowIfCancellationRequested();
 
         var stream2 = new MemoryStream(img2);
         var t2 = Image.LoadAsync<Rgb24>(stream2, ct);
-        if(ct.IsCancellationRequested){
-            return emptyResult;
-        }
+        ct.ThrowIfCancellationRequested();
 
         var face1 = await t1;
         var embeddings1 = await GetEmbeddingsAsync(face1, ct);
-        if(ct.IsCancellationRequested){
-            return emptyResult;
-        }
+        ct.ThrowIfCancellationRequested();
 
         var face2 = await t2;
         var embeddings2 = await GetEmbeddingsAsync(face2, ct);
-        if(ct.IsCancellationRequested){
-            return emptyResult;
-        }
+        ct.ThrowIfCancellationRequested();
 
         var distance = Distance(embeddings1, embeddings2);
         var similarity = Similarity(embeddings1, embeddings2);
