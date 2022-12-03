@@ -20,6 +20,7 @@ namespace Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddSwaggerDocument();
             services.AddSingleton<IImagesDB>(new ImagesDatabase());
         }
 
@@ -32,6 +33,8 @@ namespace Server
             }
 
             app.UseRouting();
+            app.UseOpenApi();
+            app.UseSwaggerUi3();
 
             app.UseEndpoints(endpoints =>
             {

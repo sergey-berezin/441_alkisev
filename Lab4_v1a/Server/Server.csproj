@@ -18,6 +18,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.10" />
+    <PackageReference Include="NSwag.Generation.AspNetCore" Version="13.18.0" />
+    <PackageReference Include="NSwag.AspnetCore" Version="13.17.0" />
   </ItemGroup>
 
 </Project>

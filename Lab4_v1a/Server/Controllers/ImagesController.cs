@@ -14,36 +14,70 @@ namespace Server.Controllers
     public class ImagesController : ControllerBase
     {
         private IImagesDB db;
+        private CancellationTokenSource cts;
         public ImagesController(IImagesDB db)
         {
             this.db = db;
+            this.cts = new CancellationTokenSource();
         }
-        public Image[] GetImages()
+        public async Task<ActionResult<Image[]>> GetImages()
         {
-            return db.GetImages().ToArray();
+            Image[] ret;
+            try
+            {
+                ret = (await db.GetImages(cts.Token)).ToArray();
+            }
+            catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            return ret;
         }
 
         [HttpGet("{id}")]
-        public ActionResult<string> GetImage(int id)
+        public async Task <ActionResult<Image>> GetImage(int id)
         {
-            if(id < 0)
+            Image? img;
+            try
             {
-                return StatusCode(404, "Negative id");
+                img = await db.TryGetImage(id, cts.Token);
             }
-            return $"GetImage -> <image with id == {id}";
+            catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            if(img is null){
+                return StatusCode(404, $"Not found image with id={id}");
+            }
+            return img;
         }
 
         [HttpPost]
-        public ActionResult<string> PostImage(Image img)
+        public async Task<ActionResult<string>> PostImage(Image img)
         {
-            db.AddImage(img);
-            return StatusCode(200, "Images added");
+            int id;
+            try
+            {
+                id = await db.AddImage(img, cts.Token);
+            }
+            catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            return StatusCode(200, $"{id}");
         }
 
         [HttpDelete]
-        public ActionResult<string> DeleteImages()
+        public async Task<ActionResult<string>> DeleteImages()
         {
-            db.DeleteImages();
+            try
+            {
+                await db.DeleteImages(cts.Token);
+            }
+            catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
             return StatusCode(200, "Images deleted");
         }
     }

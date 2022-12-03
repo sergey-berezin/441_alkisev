@@ -8,10 +8,10 @@ namespace Server.Database
 {
     public interface IImagesDB
     {
-        public IEnumerable<Image> GetImages();
-        public Image? TryGetImage(int id);
-        public int AddImage(Image img);
-        public void DeleteImages();
+        public Task<IEnumerable<Image>> GetImages(CancellationToken ct);
+        public Task<Image?> TryGetImage(int id, CancellationToken ct);
+        public Task<int> AddImage(Image img, CancellationToken ct);
+        public Task DeleteImages(CancellationToken ct);
     }
 
     public class ImagesContext: DbContext
@@ -34,18 +34,47 @@ namespace Server.Database
         }
         private SemaphoreSlim dbLock = new SemaphoreSlim(1, 1);
 
-        int IImagesDB.AddImage(Image img)
+        async Task<int> IImagesDB.AddImage(Image img, CancellationToken ct)
         {
+            var id = -1;
             try
             {
-                var stream = new MemoryStream(img.Details.Data);
-                var imageSharp = SixLabors.ImageSharp.Image.Load<Rgb24>(stream);
-                float[] embed = FacesComparator.GetEmbeddings(imageSharp);
-                var byteArray = new byte[embed.Length * 4];
-                Buffer.BlockCopy(embed, 0, byteArray, 0, byteArray.Length);
-                img.Embedding = byteArray;
-                
-                dbLock.Wait();
+                await dbLock.WaitAsync();
+                using (var db = new ImagesContext())
+                {
+                    string hash = Image.GetHash(img.Details.Data);
+                    var q = db.Images.Where(x => x.Hash == hash)
+                        .Include(x => x.Details)
+                        .Where(x => Equals(x.Details.Data, img.Details.Data));
+                    if(q.Any())
+                    {
+                        id = q.First().Id;
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                throw;
+            }
+            finally
+            {
+                dbLock.Release();
+            }
+            if(id != -1)
+            {
+                return id;
+            }
+
+            var stream = new MemoryStream(img.Details.Data);
+            var imageSharp = await SixLabors.ImageSharp.Image.LoadAsync<Rgb24>(stream, ct);
+            float[] embed = await FacesComparator.GetEmbeddingsAsync(imageSharp, ct);
+            var byteArray = new byte[embed.Length * 4];
+            Buffer.BlockCopy(embed, 0, byteArray, 0, byteArray.Length);
+            img.Embedding = byteArray;
+
+            try
+            {
+                await dbLock.WaitAsync(ct);
                 using (var db = new ImagesContext())
                 {
                     db.Add(img);
@@ -63,11 +92,11 @@ namespace Server.Database
             return img.Id;
         }
 
-        void IImagesDB.DeleteImages()
+        async Task IImagesDB.DeleteImages(CancellationToken ct)
         {
             try
             {
-                dbLock.Wait();
+                await dbLock.WaitAsync(ct);
                 using (var db = new ImagesContext())
                 {
                     db.Details.RemoveRange(db.Details);
@@ -85,12 +114,12 @@ namespace Server.Database
             }
         }
 
-        IEnumerable<Image> IImagesDB.GetImages()
+        async Task<IEnumerable<Image>> IImagesDB.GetImages(CancellationToken ct)
         {
             IEnumerable<Image> ret;
             try
             {
-                dbLock.Wait();
+                await dbLock.WaitAsync(ct);
                 using (var db = new ImagesContext())
                 {
                     ret = db.Images.Include(item => item.Details).ToList();
@@ -107,12 +136,12 @@ namespace Server.Database
             return ret;
         }
 
-        Image? IImagesDB.TryGetImage(int id)
+        async Task<Image?> IImagesDB.TryGetImage(int id, CancellationToken ct)
         {
-            Image img = null;
+            Image? img = null;
             try
             {
-                dbLock.Wait();
+                await dbLock.WaitAsync(ct);
                 using (var db = new ImagesContext())
                 {
                     var q = db.Images.Where(x => x.Id == id);
