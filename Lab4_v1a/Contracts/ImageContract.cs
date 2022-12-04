@@ -15,8 +15,8 @@ namespace Contracts
         [Key]
         public int Id { get; set; }
         public string Name { get; set; }
-        public string Hash { get; set; }
-        public byte[] Embedding { get; set; }
+        public string? Hash { get; set; }
+        public byte[]? Embedding { get; set; }
         public ImageDetails Details { get; set; }
 
         public static string GetHash(byte[] data)

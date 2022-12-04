@@ -71,6 +71,10 @@ namespace Server.Database
             var byteArray = new byte[embed.Length * 4];
             Buffer.BlockCopy(embed, 0, byteArray, 0, byteArray.Length);
             img.Embedding = byteArray;
+            if(img.Hash is null)
+            {
+                img.Hash = Image.GetHash(img.Details.Data);
+            }
 
             try
             {
