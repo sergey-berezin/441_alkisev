@@ -27,13 +27,13 @@
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Grid.Column="0">
                 <TextBlock TextAlignment="Center" Text="Managing local images" FontWeight="Bold" Background="LightGreen"/>
-                <Button Content="Load images" Command="{Binding LoadImages}" Margin="10" Height="25" Background="LightGreen"/>
-                <Button Content="Compare" Command="{Binding Compare}" Margin="10" Height="25" Background="LightGreen"/>
-                <Button Content="Cancel" Command="{Binding Cancel}" Margin="10" Height="25" Background="LightGreen"/>
-                <Button Content="Clear" Command="{Binding Clear}"  Margin="10" Height="25" Background="LightGreen"/>
+                <Button Content="Load images" Command="{Binding LoadImages}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Compare" Command="{Binding Compare}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Cancel" Command="{Binding Cancel}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Clear" Command="{Binding Clear}"  Margin="20 8 20 25" Height="25" Background="LightGreen"/>
                 <TextBlock TextAlignment="Center" Text="Managing storage" FontWeight="Bold" Background="LightBlue"/>
-                <Button Content="Clear Storage" Command="{Binding ClearStorage}"  Margin="10" Height="25" Background="LightBlue"/>
-                <Button Content="Update storage info" Command="{Binding UpdateStorageInfo}"  Margin="10" Height="25" Background="LightBlue"/>
+                <Button Content="Clear Storage" Command="{Binding ClearStorage}"  Margin="20 8 20 8" Height="25" Background="LightBlue"/>
+                <Button Content="Update storage info" Command="{Binding UpdateStorageInfo}"  Margin="20 8 20 8" Height="25" Background="LightBlue"/>
             </StackPanel>
 
             <TextBlock Text="Storage data" TextAlignment="Center" FontWeight="Bold"

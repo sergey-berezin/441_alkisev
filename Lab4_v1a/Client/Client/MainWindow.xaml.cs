@@ -18,6 +18,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Newtonsoft.Json;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Advanced;
 
 namespace Client
 {
@@ -26,14 +31,11 @@ namespace Client
     /// </summary>
     public partial class MainWindow : Window
     {
-        // TODO:
-        //   - image resize
-        //   - requests retry
-
         private static readonly string addr = "http://localhost:5000";
         
         public List<Contracts.Image> Images = new();
         public CancellationTokenSource cts = new();
+        public StorageHttpClient client = new(addr);
         public bool ComparisonRunning { get; private set; }
 
         public ICommand LoadImages { get; private set; }
@@ -60,44 +62,6 @@ namespace Client
             InitializeComponent();
             MainGrid.DataContext = this;
         }
-        private static async Task<Contracts.Image[]> GetImagesFromService()
-        {
-            var client = new HttpClient();
-            var response = await client.GetAsync($"{addr}/images");
-            var ret = JsonConvert.DeserializeObject<Contracts.Image[]>(response.Content.ReadAsStringAsync().Result);
-            if (ret is null)
-            {
-                return Array.Empty<Contracts.Image>();
-            }
-            return ret;
-        }
-
-        private static async Task<Contracts.Image?> GetImageFromService(int id)
-        {
-            var client = new HttpClient();
-            var response = await client.GetAsync($"{addr}/images/{id}");
-            var ret = JsonConvert.DeserializeObject<Contracts.Image>(response.Content.ReadAsStringAsync().Result);
-            return ret;
-        }
-
-        private static async Task<int> PostImageToService(Contracts.Image img)
-        {
-            var client = new HttpClient();
-            var data = new StringContent(JsonConvert.SerializeObject(img), System.Text.Encoding.UTF8, "application/json");
-            var response = await client.PostAsync($"{addr}/images", data);
-            if(response.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                MessageBox.Show(response.Content.ReadAsStringAsync().Result);
-            }
-            var responseString = await response.Content.ReadAsStringAsync();
-            return Int32.Parse(responseString);
-        }
-
-        private static async Task DeleteImagesFromService()
-        {
-            var client = new HttpClient();
-            var response = await client.DeleteAsync($"{addr}/images");
-        }
 
         private static TextBlock CreateTextBlock(string distance, string similarity)
         {
@@ -114,53 +78,75 @@ namespace Client
         }
         private async Task DoLoadImages()
         {
-            DoClear();
-            var ofd = new OpenFileDialog { Multiselect = true };
-            var response = ofd.ShowDialog();
-            if (response == true)
+            try
             {
-                foreach (var path in ofd.FileNames)
+                DoClear();
+                var ofd = new OpenFileDialog { Multiselect = true };
+                var response = ofd.ShowDialog();
+                if (response == true)
                 {
-                    var details = new Contracts.ImageDetails
+                    foreach (var path in ofd.FileNames)
                     {
-                        Data = await System.IO.File.ReadAllBytesAsync(path),
-                    };
-                    var image = new Contracts.Image
-                    {
-                        Name = path,
-                        Details = details,
-                        Hash = Contracts.Image.GetHash(details.Data),
-                    };
-                    var id = await PostImageToService(image);
-                    image.Id = id;
-                    Images.Add(image);
+                        byte[] data = await System.IO.File.ReadAllBytesAsync(path, cts.Token);
+                        var memStream = new MemoryStream(data);
+                        var srcImageData = await SixLabors.ImageSharp.Image.LoadAsync<Rgb24>(memStream, cts.Token);
+                        srcImageData.Mutate(ctx =>
+                        {
+                            ctx.Resize(new ResizeOptions
+                            {
+                                Size = new SixLabors.ImageSharp.Size(112, 112),
+                                Mode = SixLabors.ImageSharp.Processing.ResizeMode.Crop
+                            });
+                        });
+                        memStream = new MemoryStream();
+                        srcImageData.Save(memStream, srcImageData.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
+                        data = memStream.ToArray();
+
+                        var details = new Contracts.ImageDetails
+                        {
+                            Data = data
+                        };
+                        var image = new Contracts.Image
+                        {
+                            Name = path,
+                            Details = details,
+                            Hash = Contracts.Image.GetHash(details.Data),
+                        };
+                        var id = await client.PostImageToService(image);
+                        image.Id = id;
+                        Images.Add(image);
+                    }
                 }
-            }
-            ComparisonData.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Star) });
-            ComparisonData.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
-            var tb = CreateTextBlock("Distance", "Similarity");
-            Grid.SetColumn(tb, 0);
-            Grid.SetRow(tb, 0);
-            ComparisonData.Children.Add(tb);
-            for (int i = 0; i < Images.Count; i++)
-            {
                 ComparisonData.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Star) });
                 ComparisonData.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
-                var image = new System.Windows.Controls.Image
+                var tb = CreateTextBlock("Distance", "Similarity");
+                Grid.SetColumn(tb, 0);
+                Grid.SetRow(tb, 0);
+                ComparisonData.Children.Add(tb);
+                for (int i = 0; i < Images.Count; i++)
                 {
-                    Source = (BitmapSource)new ImageSourceConverter().ConvertFrom(Images[i].Details.Data)
-                };
-                Grid.SetColumn(image, 0);
-                Grid.SetRow(image, i + 1);
-                ComparisonData.Children.Add(image);
+                    ComparisonData.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Star) });
+                    ComparisonData.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                    var image = new System.Windows.Controls.Image
+                    {
+                        Source = (BitmapSource)new ImageSourceConverter().ConvertFrom(Images[i].Details.Data)
+                    };
+                    Grid.SetColumn(image, 0);
+                    Grid.SetRow(image, i + 1);
+                    ComparisonData.Children.Add(image);
 
-                image = new System.Windows.Controls.Image
-                {
-                    Source = (BitmapSource)new ImageSourceConverter().ConvertFrom(Images[i].Details.Data)
-                };
-                Grid.SetColumn(image, i + 1);
-                Grid.SetRow(image, 0);
-                ComparisonData.Children.Add(image);
+                    image = new System.Windows.Controls.Image
+                    {
+                        Source = (BitmapSource)new ImageSourceConverter().ConvertFrom(Images[i].Details.Data)
+                    };
+                    Grid.SetColumn(image, i + 1);
+                    Grid.SetRow(image, 0);
+                    ComparisonData.Children.Add(image);
+                }
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.Message);
             }
         }
         private bool CanCompare()
@@ -204,7 +190,7 @@ namespace Client
                     for (int i = 0; i < n && !cts.IsCancellationRequested; ++i)
                     {
                         var id = Images[i].Id;
-                        var image = await GetImageFromService(id);
+                        var image = await client.GetImageFromService(id);
                         if(image is not null)
                         {
                             Images[i] = image;
@@ -291,7 +277,7 @@ namespace Client
             try
             {
                 DoClear();
-                await DeleteImagesFromService();
+                await client.DeleteImagesFromService();
                 await DoUpdateStorageInfo();
             }
             catch (Exception e)
@@ -309,7 +295,7 @@ namespace Client
         {
             try
             {
-                var images = await GetImagesFromService();
+                var images = await client.GetImagesFromService();
                 SavedImages.Clear();
                 foreach(var img in images)
                 {
