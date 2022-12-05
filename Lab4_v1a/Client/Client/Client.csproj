@@ -13,9 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Contracts">
-      <HintPath>..\..\dotnet2022_labs\Lab4_v1a\Contracts\bin\Debug\net6.0\Contracts.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\Contracts\Contracts.csproj" />
   </ItemGroup>
 
 </Project>
