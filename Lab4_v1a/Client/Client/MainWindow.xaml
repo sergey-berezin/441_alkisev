@@ -1,0 +1,58 @@
+﻿<Window x:Class="Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client"
+        mc:Ignorable="d"
+        Title="FaceCompareApp" Height="600" Width="840"
+        MinHeight="600" MinWidth="840">
+    <Window.Resources>
+        <local:BitmapConverter x:Key="bitmapConverter"/>
+    </Window.Resources>
+    <Grid x:Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="10"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="5*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Row="0" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="310"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Grid.Column="0">
+                <TextBlock TextAlignment="Center" Text="Managing local images" FontWeight="Bold" Background="LightGreen"/>
+                <Button Content="Load images" Command="{Binding LoadImages}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Compare" Command="{Binding Compare}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Cancel" Command="{Binding Cancel}" Margin="20 8 20 8" Height="25" Background="LightGreen"/>
+                <Button Content="Clear" Command="{Binding Clear}"  Margin="20 8 20 25" Height="25" Background="LightGreen"/>
+                <TextBlock TextAlignment="Center" Text="Managing storage" FontWeight="Bold" Background="LightBlue"/>
+                <Button Content="Clear Storage" Command="{Binding ClearStorage}"  Margin="20 8 20 8" Height="25" Background="LightBlue"/>
+                <Button Content="Update storage info" Command="{Binding UpdateStorageInfo}"  Margin="20 8 20 8" Height="25" Background="LightBlue"/>
+            </StackPanel>
+
+            <TextBlock Text="Storage data" TextAlignment="Center" FontWeight="Bold"
+                       Background="LightYellow" Grid.Row="1" Grid.Column="0" Height="16" VerticalAlignment="Top"/>
+            <ListBox Name="CachedImagesLB" ItemsSource="{Binding SavedImages}" Grid.Row="1" Grid.Column="0" Margin="5,25,5,5" Background="LightYellow">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Image HorizontalAlignment="Center" Source="{Binding Details.Data, Converter={StaticResource bitmapConverter}}" Height="30" Width="30"/>
+                            <TextBlock HorizontalAlignment="Center" Text="{Binding Name}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <Grid x:Name="ComparisonData" Grid.Column="1" Grid.Row="0" Margin="10" ShowGridLines="True"/>
+
+        <ProgressBar x:Name="ComparisonPB" Maximum="100" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+
+    </Grid>
+</Window>

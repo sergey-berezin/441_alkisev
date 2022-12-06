@@ -1,0 +1,160 @@
+{
+    "x-generator": "NSwag v13.18.0.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v10.0.0.0))",
+    "swagger": "2.0",
+    "info": {
+      "title": "My Title",
+      "version": "1.0.0"
+    },
+    "host": "localhost:5000",
+    "schemes": [
+      "http"
+    ],
+    "produces": [
+      "text/plain",
+      "application/json",
+      "text/json"
+    ],
+    "paths": {
+      "/Images": {
+        "get": {
+          "tags": [
+            "Images"
+          ],
+          "operationId": "Images_GetImages",
+          "responses": {
+            "200": {
+              "x-nullable": false,
+              "description": "",
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Image"
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": [
+            "Images"
+          ],
+          "operationId": "Images_PostImage",
+          "consumes": [
+            "application/json",
+            "text/json",
+            "application/*+json"
+          ],
+          "parameters": [
+            {
+              "name": "img",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Image"
+              },
+              "x-nullable": false
+            }
+          ],
+          "responses": {
+            "200": {
+              "x-nullable": false,
+              "description": "",
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "delete": {
+          "tags": [
+            "Images"
+          ],
+          "operationId": "Images_DeleteImages",
+          "responses": {
+            "200": {
+              "x-nullable": false,
+              "description": "",
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "/Images/{id}": {
+        "get": {
+          "tags": [
+            "Images"
+          ],
+          "operationId": "Images_GetImage",
+          "parameters": [
+            {
+              "type": "integer",
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "format": "int32",
+              "x-nullable": false
+            }
+          ],
+          "responses": {
+            "200": {
+              "x-nullable": false,
+              "description": "",
+              "schema": {
+                "$ref": "#/definitions/Image"
+              }
+            }
+          }
+        }
+      }
+    },
+    "definitions": {
+      "Image": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "hash",
+          "embedding",
+          "details"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "embedding": {
+            "type": "string",
+            "format": "byte"
+          },
+          "details": {
+            "$ref": "#/definitions/ImageDetails"
+          }
+        }
+      },
+      "ImageDetails": {
+        "type": "object",
+        "required": [
+          "id",
+          "data"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "data": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      }
+    }
+  }
