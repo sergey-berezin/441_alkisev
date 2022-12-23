@@ -58,6 +58,9 @@ namespace Server.Controllers
             int id;
             try
             {
+                if(img.Hash is null){
+                    img.Hash = Image.GetHash(img.Details.Data);
+                }
                 id = await db.AddImage(img, cts.Token);
             }
             catch(Exception e)
