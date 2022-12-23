@@ -35,7 +35,7 @@ namespace Server
             app.UseRouting();
             app.UseOpenApi();
             app.UseSwaggerUi3();
-            app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod());
+            app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
             app.UseEndpoints(endpoints =>
             {
