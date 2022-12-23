@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+
+    <div>
+        <div class="managing-local-images">
+            <h2>Управление загруженными картинками</h2>
+            <input class="button" id="files-input" type="file" multiple="true" accept=".jpg, .jpeg, .png"/>
+            <button class="button" id="load-images">Загрузить в хранилище</button>
+            <button class="button" id="compare-images">Сравнить</button>
+            <button class="button" id="clear-images">Очистить</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <h2>Таблица сравнения</h2>
+        <table class="comparisons-table">
+            <tbody id="comparisons-table-body">
+            </tbody>
+          </table>
+
+    </div>
+
+    <div class="managing-storage">
+        <h2>Управление удаленным хранилищем</h2>
+        <button class="button" id="update-storage-info">Обновить</button>
+        <button class="button" id="clear-storage">Очистить хранилище</button>
+    </div>
+
+    <div class="storage-data">
+        <h2>Содержимое хранилища</h2>
+        <ul id="storage-data-items"></ul>
+    </div>
+
+<script src="main.js"></script>
+
+</body>
+</html> 
